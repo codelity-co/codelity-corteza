@@ -1,0 +1,143 @@
+version: '3.7'
+volumes:
+   postgres_data:
+services:
+
+  postgresql:
+    image: postgres:13-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=corteza
+      - POSTGRES_USER=corteza
+      - POSTGRES_PASSWORD=corteza
+      - PG_DATA=/var/lib/postgresql/data
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  corteza-server-corredor:
+    image: cortezaproject/corteza-server-corredor:latest
+    ports:
+      - "50051:50051"
+    environment: 
+      - CORREDOR_ADDR=0.0.0.0:50051
+      - CORREDOR_ENABLED=true
+      # - CORREDOR_MAX_BACKOFF_DELAY=1m
+      # - CORREDOR_EXEC_CSERVERS_API_BASEURL_TEMPLATE=https://api.{host}:8081/{service}
+      - CORREDOR_LOG_ENABLED=corteza-server-corredor
+      - CORREDOR_ENV=prod
+      # - CORREDOR_LOG_LEVEL=info
+      # - CORREDOR_LOG_PRETTY=false
+      # - CORREDOR_DEBUG=false
+      # - CORREDOR_EXT_DEPENDENCIES_AUTO_UPDATE=true
+      # - CORREDOR_EXT_SERVER_SCRIPTS_ENABLED=true
+      # - CORREDOR_EXT_SERVER_SCRIPTS_WATCH=true
+      # - CORREDOR_EXT_CLIENT_SCRIPTS_ENABLED=true
+      # - CORREDOR_EXT_CLIENT_SCRIPTS_WATCH=true
+
+  corteza-server:
+    image: cortezaproject/corteza-server:latest
+    links: 
+      - "postgresql:postgresql"
+      - "corteza-server-corredor:corteza-server-corredor"
+    depends_on: 
+      - postgresql
+      - corteza-server-corredor
+    ports:
+      - "8081:8081"
+    environment: 
+      # - ACTIONLOG_ENABLED=true
+      # - ACTIONLOG_DEBUG=false
+      # - AUTH_JWT_SECRET=
+      # - AUTH_JWT_EXPIRY=720
+      # - CORREDOR_ENABLED=true
+      - CORREDOR_ADDR=corteza-server-corredor:50051
+      - CORREDOR_API_BASE_URL_SYSTEM=http://corteza-server:8081/system
+      - CORREDOR_API_BASE_URL_MESSAGING=http://corteza-server:8081/messaging
+      - CORREDOR_API_BASE_URL_COMPOSE=http://corteza-server:8081/compose
+      # - CORREDOR_MAX_BACKOFF_DELAY=1m
+      # - CORREDOR_MAX_RECEIVE_MESSAGE_SIZE=2<<23
+      # - CORREDOR_DEFAULT_EXEC_TIMEOUT=1m
+      # - CORREDOR_LIST_TIMEOUT=2s
+      # - CORREDOR_LIST_REFRESH=5s
+      # - CORREDOR_RUN_AS_ENABLED=true
+      # - CORREDOR_CLIENT_CERTIFICATES_ENABLED=false
+      # - CORREDOR_CLIENT_CERTIFICATES_PATH=/certs/corredor/client
+      # - CORREDOR_CLIENT_CERTIFICATES_CA=ca.crt
+      # - CORREDOR_CLIENT_CERTIFICATES_PRIVATE=private.key
+      # - CORREDOR_CLIENT_CERTIFICATES_PUBLIC=public.crt
+      # - CORREDOR_CLIENT_CERTIFICATES_SERVER_NAME=
+      - DB_DSN=postgres://corteza:corteza@postgresql:5432/corteza?sslmode=disable
+      - ENVIRONMENT=production
+      # - EVENTBUS_SCHEDULER_ENABLED=true
+      # - EVENTBUS_SCHEDULER_INTERVAL=1m
+      # - FEDERATION_ENABLED=false
+      # - FEDERATION_LABEL=Federation
+      # - FEDERATION_HOST=Federation
+      # - FEDERATION_SYNC_STRUCTURE_MONITOR_INTERVAL=2m
+      # - FEDERATION_SYNC_STRUCTURE_PAGE_SIZE=1
+      # - FEDERATION_SYNC_DATA_MONITOR_INTERVAL=1m
+      # - FEDERATION_SYNC_DATA_PAGE_SIZE=100
+      - HOSTNAME=corteza-server
+      - HTTP_CLIENT_TSL_INSECURE=false
+      # - HTTP_CLIENT_TIMEOUT=30
+      - HTTP_ADDR=:8081
+      # - HTTP_LOG_REQUEST=false
+      # - HTTP_LOG_RESPONSE=false
+      # - HTTP_ERROR_TRACING=false
+      # - HTTP_ENABLE_HEALTHCHECK_ROUTE=true
+      # - HTTP_ENABLE_VERSION_ROUTE=true
+      # - HTTP_ENABLE_DEBUG_ROUTE=false
+      # - HTTP_METRICS=false
+      # - HTTP_METRICS_NAME=corteza
+      # - HTTP_METRICS_USERNAME=metrics
+      # - HTTP_METRICS_PASSWORD=string(rand.Bytes(5))
+      # - HTTP_REPORT_PANIC=true
+      # - HTTP_API_ENABLED=true
+      # - HTTP_API_BASE_URL=http://localhosot:8081
+      # - HTTP_WEBAPP_ENABLED=false
+      # - HTTP_WEBAPP_BASE_URL=http://localhost:8080
+      # - HTTP_WEBAPP_BASE_DIR=webapp/public
+      # - HTTP_WEBAPP_LIST=admin,auth,messaging,compose
+      # - MINIO_ACCESS_KEY=
+      # - MINIO_BUCKET=
+      # - MINIO_ENDPOINT=
+      # - MINIO_SECRET_KEY=
+      # - MINIO_SECURE=true
+      # - MINIO_SSEC_KEY=
+      # - MINIO_STRICT=false
+      # - MONITOR_INTERVAL=300s
+      # - PROVISION_ALWAYS=true
+      # - PROVISION_PATH=provision/*
+      # - SMTP_HOST=localhost
+      # - SMTP_PORT=25
+      # - SMTP_USER=
+      # - SMTP_PASS=
+      # - SMTP_FROM=
+      # - SMTP_TLS_INSECURE=false
+      # - SMTP_TLS_SERVER_NAME=
+      # - STORAGE_PATH=/var/store
+      # - UPGRADE_DEBUG=false
+      # - UPGRADE_ALWAYS=true
+      # - WAIT_FOR=0
+      # - WAIT_FOR_STATUS_PAGE=true
+      # - WAIT_FOR_SERVICES=
+      # - WAIT_FOR_SERVICES_TIMEOUT=1m
+      # - WAIT_FOR_SERVICES_PROBE_TIMEOUT=30s
+      # - WAIT_FOR_SERVICES_PROBE_INTERVAL=5s
+      # - WEBSOCKET_TIMEOUT=15s
+      # - WEBSOCKET_PING_TIMEOUT=120s
+      # - WEBSOCKET_PING_PERIOD=108s
+
+  corteza-webapp:
+    image: cortezaproject/corteza-webapp:latest
+    links:
+      - corteza-server:corteza-server
+    depends_on: 
+      - corteza-server
+    ports:
+      - "8080:80"
+    environment: 
+    #   # - MONOLITH_API=1
+    #   - PROTOCOL=http
+      - API_BASEURL=localhost:8081
