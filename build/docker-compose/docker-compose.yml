@@ -109,12 +109,12 @@ services:
       # - MONITOR_INTERVAL=300s
       # - PROVISION_ALWAYS=true
       # - PROVISION_PATH=provision/*
-      # - SMTP_HOST=localhost
-      # - SMTP_PORT=25
+      # - SMTP_HOST=
+      # - SMTP_PORT=
       # - SMTP_USER=
       # - SMTP_PASS=
       # - SMTP_FROM=
-      # - SMTP_TLS_INSECURE=false
+      # - SMTP_TLS_INSECURE=true
       # - SMTP_TLS_SERVER_NAME=
       # - STORAGE_PATH=/var/store
       # - UPGRADE_DEBUG=false
@@ -138,6 +138,5 @@ services:
     ports:
       - "8080:80"
     environment: 
-    #   # - MONOLITH_API=1
-    #   - PROTOCOL=http
       - API_BASEURL=localhost:8081
+
